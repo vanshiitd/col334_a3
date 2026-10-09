@@ -35,6 +35,8 @@ up() {
     for ns in $NS; do
         ip netns add "$ns"
         ip -n "$ns" link set lo up
+        # Ubuntu's default; this box may default to something else (BBR).
+        ip netns exec "$ns" sysctl -qw net.ipv4.tcp_congestion_control=cubic 2>/dev/null || true
     done
     link client cA r1 r1A        # LAN A
     link r1 r1B r2 r2B           # LAN B

@@ -161,6 +161,9 @@ All downloads were checked by md5 against the original file.
 
 ## 5. What to run on the VMs
 
+The step-by-step version for our Fusion VMs, with helper scripts, is in
+`docs/VM_RUNBOOK.md`. The generic outline:
+
 Before starting:
 - Each VM's adapters must be on the internal networks only. Make sure
   NetworkManager / netplan does not manage those interfaces. Otherwise it
