@@ -1,0 +1,28 @@
+#!/bin/sh
+# Launcher for the HTTP server: run-server [-p PORT] [-d DOCROOT] [--log LOGFILE]
+#
+# Our TCP lives in user space, so the kernel has no listening socket on the
+# port and would answer every SYN with a RST. Drop RSTs sent from the
+# server's port so only our own TCP answers. The rule is added once and
+# left in place.
+port=8080
+prev=
+for arg in "$@"; do
+    case $prev in -p) port=$arg ;; esac
+    case $arg in -p?*) port=${arg#-p} ;; esac
+    prev=$arg
+done
+
+case $port in
+    ''|*[!0-9]*) ;;     # invalid port: the server itself reports the error
+    *)
+        if command -v iptables >/dev/null 2>&1; then
+            iptables -C OUTPUT -p tcp --sport "$port" --tcp-flags RST RST -j DROP 2>/dev/null ||
+                iptables -I OUTPUT -p tcp --sport "$port" --tcp-flags RST RST -j DROP
+        else
+            echo "warning: iptables not found; the kernel may reset our connections" >&2
+        fi
+        ;;
+esac
+
+exec python3 "$(dirname "$0")/../src/http_server.py" "$@"
