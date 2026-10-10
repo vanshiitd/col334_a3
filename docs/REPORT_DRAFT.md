@@ -195,10 +195,10 @@ packets arrive on enp26s0 (Link D, via r2): the asymmetric paths of R2.
   (at most 2 MSS per ACK, RFC 3465), roughly doubling each RTT.
 - Above ssthresh it grows by 1 MSS per window acknowledged, i.e. 1 MSS
   per RTT.
-- On three duplicate ACKs: ssthresh = flight/2, cwnd = ssthresh + 3 MSS.
+- On three duplicate ACKs: ssthresh = max(flight/2, 2 MSS), cwnd = ssthresh + 3 MSS.
   cwnd is inflated by one MSS per further duplicate and deflated to
   ssthresh when everything outstanding at the loss is acknowledged.
-- On a timeout: ssthresh = flight/2 and cwnd = 1 MSS.
+- On a timeout: ssthresh = max(flight/2, 2 MSS) and cwnd = 1 MSS.
 
 (VM) Measured results:
 - **Loss and reordering.** netem added 10±5 ms delay, 5% loss and 25%
