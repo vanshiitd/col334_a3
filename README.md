@@ -4,8 +4,8 @@
 
 | Name | Entry number |
 |------|--------------|
-| _TODO_ | _TODO_ |
-| _TODO_ | _TODO_ |
+| Vansh Saini | 2023EE10656 |
+| Natasha Diwakar | 2024CS11201 |
 
 ## Language and runtime
 
