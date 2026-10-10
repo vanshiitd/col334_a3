@@ -8,7 +8,9 @@ url=${1:-http://10.10.3.10:8080/photo.jpg}
 T=/var/tmp/a3
 mkdir -p "$T"
 
-tcpdump -nn -i any -w "$T/conn.pcap" 'tcp and host 10.10.3.10 and portrange 61000-65535' \
+# -Z root: stay root instead of switching to the unprivileged "tcpdump"
+# user, so writing the capture never depends on that user's permissions.
+tcpdump -Z root -nn -i any -w "$T/conn.pcap" 'tcp and host 10.10.3.10 and portrange 61000-65535' \
     2>/dev/null &
 pid=$!
 sleep 1
