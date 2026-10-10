@@ -544,8 +544,23 @@ class TCPConnection:
     # Receiving (T11, T12)
 
     def _process_data(self, seg):
-        seq, data = seg.seq, seg.payload
-        if seg.flags & FIN and self.peer_fin_seq is None:
+        """Handle the payload (and FIN) of an incoming segment.
+
+        We announced MSS 1460, so a longer payload is several of the peer's
+        segments that Linux GRO merged before handing them to us. Process
+        it as those segments, MSS bytes at a time, so each still gets its
+        own ACK (T11) and a loss still produces a duplicate ACK per segment
+        that follows it."""
+        data = seg.payload
+        pieces = range(0, len(data), MSS) if data else [0]
+        for offset in pieces:
+            last = offset + MSS >= len(data)
+            self._receive_segment((seg.seq + offset) % SEQ_MOD,
+                                  data[offset:offset + MSS],
+                                  bool(seg.flags & FIN) and last)
+
+    def _receive_segment(self, seq, data, fin):
+        if fin and self.peer_fin_seq is None:
             self.peer_fin_seq = (seq + len(data)) % SEQ_MOD
 
         # Drop the part we already have.

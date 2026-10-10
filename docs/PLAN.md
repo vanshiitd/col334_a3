@@ -85,7 +85,7 @@ retransmission timer and sends whatever `min(cwnd, peer window)` allows.
 | T8 | Any RST for the 4-tuple aborts (`ConnectionReset`). In SYN-SENT it must ACK our SYN (RFC 793) |
 | T9 | `close()`: wait until all data is ACKed, then FIN with retransmission, then wait for ACK + peer FIN, at most 2 s. Peer FINs are always ACKed |
 | T10 | In flight <= min(cwnd, rwnd). Cumulative ACKs. RTO per RFC 6298, clamped to [0.2 s, 1 s], with backoff. 10 s without progress -> give up |
-| T11 | Pure ACK for every data segment (duplicate and out-of-order too). Window always 65535. In-order delivery to `inbox` |
+| T11 | Pure ACK for every data segment (duplicate and out-of-order too), including each segment inside a GRO-merged packet (see below). Window always 65535. In-order delivery to `inbox` |
 | T12 | Out-of-order segments inside the window kept in `out_of_order` and drained when the gap fills |
 | T13 | Client port `randint(61000, 65535)`; server port from `-p` |
 | T14 | Reno + NewReno, see below |
@@ -122,6 +122,9 @@ Things the kernel would otherwise get in the way of:
    997 of 1220 received packets were merged ones, up to 11680 bytes. With
    a strict check, nothing at all got through (verified). Corrupted
    packets are never merged, so they still fail.
+   Such a packet is then handled as the 1460-byte segments it was made
+   from, each with its own ACK. The peer still gets one ACK per segment
+   (T11), and one duplicate ACK per segment after a loss.
 3. **Choosing the source address.** `connect()` on a UDP socket (allowed;
    only TCP connect is banned) makes the routing table pick our address
    for the server. Nothing is sent.
