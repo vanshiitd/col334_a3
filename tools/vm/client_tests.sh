@@ -37,6 +37,10 @@ for f in index.html photo.jpg big.bin; do
     same "our client $f" "$OUT/py_ours_$f" "$REF/$f"
     same "curl       $f" "$OUT/py_curl_$f" "$REF/$f"
 done
+# Without -o the body goes to stdout, which must carry nothing else.
+"$CLIENT" "http://$S:8000/photo.jpg" >"$OUT/py_stdout.jpg" 2>/dev/null
+expect "our client exit code, body on stdout" $? 0
+same "our client photo.jpg via stdout" "$OUT/py_stdout.jpg" "$REF/photo.jpg"
 "$CLIENT" "http://$S:8000/index.html?q=tcp" -o "$OUT/py_query.html" 2>/dev/null
 expect "exit code with query string" $? 0
 "$CLIENT" "http://$S:8000/no-such-file" -o "$OUT/py_404" 2>/dev/null
@@ -57,6 +61,10 @@ for f in index.html photo.jpg big.bin sub/index.html; do
     expect "our client exit code for $f" $? 0
     same "our client $f" "$OUT/ours_$n" "$REF/$f"
 done
+
+"$CLIENT" "http://$S:8080/big.bin" >"$OUT/ours_stdout.bin" 2>/dev/null
+expect "our client exit code, body on stdout" $? 0
+same "our client big.bin via stdout" "$OUT/ours_stdout.bin" "$REF/big.bin"
 
 echo "== Part D: status codes and headers"
 expect "GET /sub/"              "$(code "http://$S:8080/sub/")" 200

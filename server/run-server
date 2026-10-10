@@ -17,8 +17,8 @@ case $port in
     ''|*[!0-9]*) ;;     # invalid port: the server itself reports the error
     *)
         if command -v iptables >/dev/null 2>&1; then
-            iptables -C OUTPUT -p tcp --sport "$port" --tcp-flags RST RST -j DROP 2>/dev/null ||
-                iptables -I OUTPUT -p tcp --sport "$port" --tcp-flags RST RST -j DROP
+            iptables -C OUTPUT -p tcp --sport "$port" --tcp-flags RST RST -j DROP >/dev/null 2>&1 ||
+                iptables -I OUTPUT -p tcp --sport "$port" --tcp-flags RST RST -j DROP >/dev/null
         else
             echo "warning: iptables not found; the kernel may reset our connections" >&2
         fi

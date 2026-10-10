@@ -6,10 +6,12 @@
 # it) with a RST. The client always uses a source port in 61000-65535,
 # outside Linux's ephemeral range (32768-60999), so dropping RSTs sent from
 # those ports silences the kernel for our connections only. The rule is
-# added once and left in place.
+# added once and left in place. Its output must never reach stdout: the
+# client writes the downloaded body there, and some iptables versions print
+# the rule on -C.
 if command -v iptables >/dev/null 2>&1; then
-    iptables -C OUTPUT -p tcp --sport 61000:65535 --tcp-flags RST RST -j DROP 2>/dev/null ||
-        iptables -I OUTPUT -p tcp --sport 61000:65535 --tcp-flags RST RST -j DROP
+    iptables -C OUTPUT -p tcp --sport 61000:65535 --tcp-flags RST RST -j DROP >/dev/null 2>&1 ||
+        iptables -I OUTPUT -p tcp --sport 61000:65535 --tcp-flags RST RST -j DROP >/dev/null
 else
     echo "warning: iptables not found; the kernel may reset our connections" >&2
 fi
