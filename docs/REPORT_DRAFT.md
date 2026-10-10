@@ -21,6 +21,9 @@ they are isolated from each other and from the host.
 | vmnet5 | LAN C 10.10.3.0/24 | r2 enp26s0, server enp2s0 |
 | vmnet6 | Link D 10.10.4.0/30 | client enp26s0, r2 enp3s0 |
 
+The "Subnet IP" Fusion shows for each vmnet is unused: DHCP and the host
+connection are off, and every address is set statically by netcfg/.
+
 Screenshots:
 - Fusion > Settings > Network Adapter for every adapter of every VM
   (client 2, r1 2, r2 3, server 1), showing which vmnet each is on.
@@ -137,22 +140,27 @@ application/octet-stream for others).
 
 ## R6. One connection, retransmission, buffering, congestion control
 
-Screenshot: `sudo tcpdump -nn -r conn.pcap` (or Wireshark) of one complete
-download by our client (`tools/vm/capture.sh` records one with
-`tcpdump -i any`).
+Screenshot (client): `sudo tcpdump -nn -r /var/tmp/a3/conn.pcap` of our
+client downloading index.html (3,704 bytes) from our server. It was
+captured with `tcpdump -i any` (`tools/vm/capture.sh`), since the
+connection uses two interfaces.
 
-**What the capture shows.**
-- **Handshake.** Our SYN from a port in 61000-65535 carries only the
-  option `mss 1460`. The SYN-ACK echoes it, then comes our ACK. Next the
-  GET request, the data, and the FIN exchange.
-- **Two interfaces.** Our packets leave on enp2s0 (LAN A, via r1).
-  Everything from the server arrives on enp26s0 (Link D, via r2). These
-  are the asymmetric paths of R2, which is why the capture uses `-i any`.
-- **Merged packets.** Some incoming packets are longer than 1460 bytes
-  (e.g. `length 4380`). Linux GRO on the client merged consecutive
-  segments before tcpdump and our raw socket saw them. The server sent
-  1460-byte segments. Our TCP treats such a packet as the segments it was
-  made from and sends one ACK for each, as T11 requires.
+**What the capture shows (VM).**
+
+| Packets | Meaning |
+|---------|---------|
+| `[S]` from 10.10.1.10.63714, `options [mss 1460]` | Our SYN: random source port in 61000-65535, random ISN, the MSS option only |
+| `[S.]` with `options [mss 1460]`, then our `[.] ack 1` | SYN-ACK and the final handshake ACK |
+| `[P.] seq 1:115 … GET /index.html` | The request (114 bytes) |
+| server `[.] ack 115` | Server acknowledges the request |
+| server `[P.] seq 1:3854, length 3853` | The response: 3 segments of 1460 + 1460 + 933 bytes, merged by GRO on the client before tcpdump saw them |
+| our `ack 1461`, `ack 2921`, `ack 3854` | One cumulative ACK per segment received (T11) |
+| our `[F.] seq 115` | The response is complete (Content-Length reached), so our client closes (T9) |
+| server `[F.] seq 3854` | The server closes after all its data is acknowledged |
+| our `ack 3855`, server `ack 116` | Each side acknowledges the other's FIN |
+
+All our packets leave on enp2s0 (LAN A, via r1). All the server's
+packets arrive on enp26s0 (Link D, via r2): the asymmetric paths of R2.
 
 **Retransmission.**
 - Every sent segment stays in the send buffer until it is acknowledged
